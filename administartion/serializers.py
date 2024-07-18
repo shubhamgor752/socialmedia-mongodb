@@ -31,3 +31,61 @@ class UserSignUpSerializer(serializers.Serializer):
             raise serializers.ValidationError("Length of phone number should be 10 digits")
         
         return mobile_number
+    
+
+
+class UserProfileInfo(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        
+        fields = (
+            "id",
+            "bio",
+            "first_name",
+            "email",
+            "phone_number",
+            "profession",
+            "username"
+        )
+
+
+class CustomUserSerializer(serializers.Serializer):
+
+    id = serializers.CharField(required=False)
+    username = serializers.CharField(validators=USERNAME_VALIDATORS)
+    first_name = serializers.CharField(required=False)
+    phone_number = serializers.CharField(required=False)
+    bio = serializers.CharField(required=False)
+    email = serializers.EmailField(required=False)
+    profession = serializers.CharField(required=False)
+
+
+
+
+    def update(self, instance, validated_data):
+
+        context = {
+            "id":str(instance.id),
+            "username":validated_data.get("username",instance.username),
+            "first_name":validated_data.get("first_name",instance.first_name),
+            "bio":validated_data.get("bio",instance.bio),
+            "email":validated_data.get("email",instance.email)
+        }
+        # Get the instance if it's not None
+
+
+        if instance:
+            instance = UserProfile.objects.filter(id=instance.id).first()
+            context["phone_number"] = validated_data.get("phone_number", instance.phone_number)
+            context["date_of_birth"] = validated_data.get("date_of_birth", instance.date_of_birth)
+            context["profession"] = validated_data.get("profession", instance.profession)
+            context["bio"] = validated_data.get("bio", instance.bio)
+            serializer_class = UserProfile
+            for key , value in context.items():
+                setattr(instance , key , value)
+            instance.save()
+            response = serializer_class(instance).data
+
+            return instance
+        
+

@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny,IsAuthenticated
-from administartion.serializers import UserSignUpSerializer,USERNAME_VALIDATORS
+from administartion.serializers import UserSignUpSerializer,USERNAME_VALIDATORS,UserProfileInfo, CustomUserSerializer
 from rest_framework.authentication import TokenAuthentication
 from django.http import JsonResponse
 from django.core.serializers import serialize
@@ -73,3 +73,86 @@ class SignInViewset(viewsets.ViewSet):
 
 
 
+class UserViewset(viewsets.ViewSet):
+    serializer_class = CustomUserSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def create(self,request):
+        instance = get_object_or_404(CustomUser,id=request.user.id)
+        serializer = self.serializer_class(instance , data=request.data ,partial =True)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        username = validated_data["username"].replace("","_").lower()
+        validated_data["username"] = username
+        phone_number = validated_data.get("phone_number")
+        email = validated_data.get("email")
+
+        if username and UserProfile.objects.filter(username=username).exclude(id=instance.id).exists():
+            message = "Username Duplicate"
+
+        elif phone_number and UserProfile.objects.filter(phone_number=phone_number).exclude(id=instance.id).exclude(is_superuser=True).exists():
+            message = "Phone Number Duplicate"
+
+        elif email and UserProfile.objects.filter(email=email).exclude(id=instance.id).exclude(is_superuser=True).exists():
+            message = "email is already in use"
+
+        else:
+            response = serializer.save(request=request)
+            serialized_data = self.serializer_class(response).data
+            message = "User Update Succesfully"
+            return JsonResponse(
+                {
+                    "status":True,
+                    "message":message,
+                    "data":serialized_data
+                }
+            )
+        
+
+    def retrieve(self, request , pk:str = None):
+        try:
+            user_obj = get_object_or_404(UserProfile , id = request.user.id)
+            response = UserProfileInfo(user_obj , context={"request":request}).data
+            message = "User Information"
+            return Response(
+                {"status": True, "message": message, "data": response},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            message = str(e)
+        return Response(
+            {"status": False, "message": message, "data": {}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class SwitchAccountViewSet(viewsets.ViewSet):
+    permission_classes = (IsAuthenticated,)
+    message = "INVALID REQUEST"
+
+
+    def create(self,request):
+        try:
+            user_instance = get_object_or_404(CustomUser , username = request.user.username)
+
+            if user_instance.is_private:
+                message = "Switched to public"
+                user_instance.is_private = False
+            else:
+                message = "Switched to private"
+                user_instance.is_private = True
+
+            user_instance.save()
+            return Response({
+                "status":True,
+                "message":message
+            },
+            status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            self.message = str(e)
+
+            return Response(
+            {"status": False, "message": self.message},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
