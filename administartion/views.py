@@ -29,9 +29,6 @@ class SignInViewset(viewsets.ViewSet):
                 if "otp" in dict(serializer.validated_data).keys()
                 else None
             )
-
-            print("otppp====", otp)
-
             if str(otp) and str(otp) == "1234":
                 user_instance = UserProfile.objects.filter(phone_number=mobile_number).first()
                 if user_instance:
