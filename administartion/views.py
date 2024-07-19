@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from django.core.serializers import serialize
 from django.core.exceptions import ValidationError
 
+
 # Create your views here.
 
 
@@ -38,7 +39,9 @@ class SignInViewset(viewsets.ViewSet):
                     message = "Sign-in complete. You're now connected and ready to go."
                     response = {
                         "user_token":user_token.key,
-                        "mobile_number":mobile_number
+                        # "mobile_number":mobile_number,
+                        "user": UserProfileInfo(user_instance).data,
+
                     }
                 else:
                     user_instance = UserProfile.objects.create(phone_number = mobile_number , is_superuser=True)
@@ -76,38 +79,62 @@ class SignInViewset(viewsets.ViewSet):
 class UserViewset(viewsets.ViewSet):
     serializer_class = CustomUserSerializer
     permission_classes = (IsAuthenticated,)
+    authentication_classes = (
+        TokenAuthentication,
+    )
 
-    def create(self,request):
-        instance = get_object_or_404(CustomUser,id=request.user.id)
-        serializer = self.serializer_class(instance , data=request.data ,partial =True)
+
+    def create(self, request):
+        instance = get_object_or_404(CustomUser, id=request.user.id)
+        serializer = self.serializer_class(
+            instance, data=request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
-        username = validated_data["username"].replace("","_").lower()
+
+        username = validated_data["username"].replace(" ", "_").lower()
         validated_data["username"] = username
         phone_number = validated_data.get("phone_number")
         email = validated_data.get("email")
-
-        if username and UserProfile.objects.filter(username=username).exclude(id=instance.id).exists():
-            message = "Username Duplicate"
-
-        elif phone_number and UserProfile.objects.filter(phone_number=phone_number).exclude(id=instance.id).exclude(is_superuser=True).exists():
-            message = "Phone Number Duplicate"
-
-        elif email and UserProfile.objects.filter(email=email).exclude(id=instance.id).exclude(is_superuser=True).exists():
+        if (
+            username
+            and UserProfile.objects.filter(username=username)
+            .exclude(id=instance.id)
+            .exists()
+        ):
+            message = "Username duplicate"
+        elif (
+            phone_number
+            and UserProfile.objects.filter(phone_number=phone_number)
+            .exclude(id=instance.id)
+            .exclude(is_superuser=True)
+            .exists()
+        ):
+            message = "phone number is already in use"
+        elif (
+            email
+            and UserProfile.objects.filter(email=email)
+            .exclude(id=instance.id)
+            .exclude(is_superuser=True)
+            .exists()
+        ):
             message = "email is already in use"
 
         else:
             response = serializer.save(request=request)
             serialized_data = self.serializer_class(response).data
-            message = "User Update Succesfully"
+            message = "User update successful"
+
             return JsonResponse(
-                {
-                    "status":True,
-                    "message":message,
-                    "data":serialized_data
-                }
+                {"status": True, "message": message, "data": serialized_data},
+                status=status.HTTP_200_OK,
             )
-        
+
+        return JsonResponse(
+            {"status": False, "message": message, "data": {}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+            
 
     def retrieve(self, request , pk:str = None):
         try:
