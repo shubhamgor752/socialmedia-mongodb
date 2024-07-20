@@ -85,50 +85,52 @@ class UserViewset(viewsets.ViewSet):
 
 
     def create(self, request):
-        instance = get_object_or_404(CustomUser, id=request.user.id)
-        serializer = self.serializer_class(
-            instance, data=request.data, partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
+        try:
 
-        username = validated_data["username"].replace(" ", "_").lower()
-        validated_data["username"] = username
-        phone_number = validated_data.get("phone_number")
-        email = validated_data.get("email")
-        if (
-            username
-            and UserProfile.objects.filter(username=username)
-            .exclude(id=instance.id)
-            .exists()
-        ):
-            message = "Username duplicate"
-        elif (
-            phone_number
-            and UserProfile.objects.filter(phone_number=phone_number)
-            .exclude(id=instance.id)
-            .exclude(is_superuser=True)
-            .exists()
-        ):
-            message = "phone number is already in use"
-        elif (
-            email
-            and UserProfile.objects.filter(email=email)
-            .exclude(id=instance.id)
-            .exclude(is_superuser=True)
-            .exists()
-        ):
-            message = "email is already in use"
-
-        else:
-            response = serializer.save(request=request)
-            serialized_data = self.serializer_class(response).data
-            message = "User update successful"
-
-            return JsonResponse(
-                {"status": True, "message": message, "data": serialized_data},
-                status=status.HTTP_200_OK,
+            instance = get_object_or_404(CustomUser, id=request.user.id)
+            serializer = self.serializer_class(
+                instance, data=request.data, partial=True
             )
+            serializer.is_valid(raise_exception=True)
+            validated_data = serializer.validated_data
+
+            username = validated_data["username"].replace(" ", "_").lower()
+            validated_data["username"] = username
+            phone_number = validated_data.get("phone_number")
+            email = validated_data.get("email")
+            if (
+                username
+                and UserProfile.objects.filter(username=username)
+                .exclude(id=instance.id)
+                .exists()
+            ):
+                message = "Username duplicate"
+            elif (
+                phone_number
+                and UserProfile.objects.filter(phone_number=phone_number)
+                .exclude(id=instance.id)
+                .exclude(is_superuser=True)
+                .exists()
+            ):
+                message = "phone number is already in use"
+            
+
+            elif email and UserProfile.objects.filter(email=email).exclude(id=instance.id):
+                message = "thiss email use already"
+
+            else:
+                response = serializer.save(request=request)
+                serialized_data = self.serializer_class(response).data
+                message = "User update successful"
+
+                return JsonResponse(
+                    {"status": True, "message": message, "data": serialized_data},
+                    status=status.HTTP_200_OK,
+                )
+        except Exception as e:
+            # print("this waysss")
+            # print("aaa excepttttt")
+            message = str(e)
 
         return JsonResponse(
             {"status": False, "message": message, "data": {}},

@@ -9,7 +9,7 @@ class CustomUser(AbstractUser):
     # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     id = models.AutoField(primary_key=True)
     bio = models.CharField(max_length=1024, null=True, blank=True)
-    email = models.EmailField(null=True, blank=True)
+    email = models.EmailField(null=True, unique=True)
     is_private = models.BooleanField(default=False)
     # profile_image = models.URLField(max_length=1024, default=PROFILE_IMAGE)
 
