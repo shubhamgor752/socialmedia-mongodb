@@ -100,3 +100,23 @@ class SendMessageViewSet(viewsets.ViewSet):
         
         except Exception as e:
             return Response({"status": False, "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+    def destroy(self,request,pk=None):
+        try:
+            message = ChatMessage.objects.getO(id=pk)
+            if message.sender == request.user.userprofile:
+                message.delete():
+                return Response({
+                    "status":True,
+                    "message":"message delete succesfully",
+                },
+                status=status.HTTP_200_OK
+                )
+            else:
+                return Response({"status": False, "message": "You don't have permission to delete this message"}, status=status.HTTP_403_FORBIDDEN)
+            
+        except ChatMessage.DoesNotExist:
+            return Response({"status": False, "message": "Message not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"status": False, "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
