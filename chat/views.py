@@ -106,7 +106,7 @@ class SendMessageViewSet(viewsets.ViewSet):
         try:
             message = ChatMessage.objects.getO(id=pk)
             if message.sender == request.user.userprofile:
-                message.delete():
+                message.delete()
                 return Response({
                     "status":True,
                     "message":"message delete succesfully",
