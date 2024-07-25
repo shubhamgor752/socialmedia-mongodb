@@ -24,6 +24,7 @@ class UserProfile(CustomUser):
     phone_number = models.CharField(max_length=10, null=True, blank=True, unique=True)
     profession = models.CharField(max_length=256, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
     class Meta:
         verbose_name = "user profile"

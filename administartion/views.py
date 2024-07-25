@@ -91,6 +91,7 @@ class UserViewset(viewsets.ViewSet):
             serializer = self.serializer_class(
                 instance, data=request.data, partial=True
             )
+            # print("serializer=======", serializer)
             serializer.is_valid(raise_exception=True)
             validated_data = serializer.validated_data
 

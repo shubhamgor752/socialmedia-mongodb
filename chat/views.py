@@ -10,6 +10,8 @@ import random
 from django.db.models import Q
 from datetime import datetime , timedelta
 from chat.models import ChatMessage
+from django.utils import timezone
+from base.message import suggested_messages
 
 # Create your views here.
 
@@ -120,3 +122,99 @@ class SendMessageViewSet(viewsets.ViewSet):
             return Response({"status": False, "message": "Message not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"status": False, "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class EditMessageViewSet(viewsets.ViewSet):
+    serializer_class = EditMessageSerialzer
+    permission_classes = (IsAuthenticated,)
+
+    def create(self,request):
+        try:
+            serializer = self.serializer_class(data=request.data)
+            if serializer.is_valid():
+                request_data = serializer.validated_data
+                message_id = request_data.get("message_id")
+                message = request_data.get("message")
+
+                if not message_id:
+                    raise serializers.ValidationError("Message ID should be present")
+
+
+                try:
+                    message_to_edit = ChatMessage.objects.filter(id=message_id)
+                except ChatMessage.DoesNotExist:
+                    raise serializer.ValidationError("Message to edit does not exist")
+                
+
+                if request.user.userprofile == message_to_edit.sender:
+                    time_elapsed = timezone.now() - message_to_edit.timestamp
+
+                    if time_elapsed.total_second() <= 120:
+                        message_to_edit.message = message
+
+                        message_to_edit.save()
+                        return Response(
+                            {"status": True, "message": "Message edited successfully", "data": serializer.data},
+                            status=status.HTTP_200_OK,
+                        )
+                    else:
+                        return Response(
+                            {"status": False, "message": "Message can't be edited after 2 minutes"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                else:
+                    return Response(
+                        {"status": False, "message": "You are not allowed to edit this message", "data": {}},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                
+            else:
+                return Response(
+                    {"status": False, "message": serializer.errors, "data": {}},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+        except Exception as e:
+            return Response(
+                {"status": False, "message": str(e), "data": {}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class SuggestMessageViewSet(viewsets.ViewSet):
+    serializer_class = SuggestionMessageSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def create(self,request):
+        try:
+            serializer = self.serializer_class(data=request.data)
+
+            if serializer.is_valid():
+                request_data = serializer.validated_data
+                message_id = request_data.get("message_id")
+                receiver = request.user.userprofile
+
+                try:
+                    sender_message = ChatMessage.objects.get(id=message_id)
+                except ChatMessage.DoesNotExist:
+                    return Response({"error": "Message with the given ID does not exist"}, status=status.HTTP_404_NOT_FOUND)
+                
+
+                if sender_message.receiver == receiver:
+                    if sender_message.id == int(message_id):
+                        sender_message.suggested_message = suggested_messages
+                        sender_message.save()
+
+                        return Response(
+                            {"status": True, "message": "Suggested message sent successfully", "data": serializer.data},
+                            status=status.HTTP_201_CREATED,
+                        )
+                    else:
+                        return Response({"error": "Permission denied"},status=status.HTTP_403_FORBIDDEN)
+                else:
+                    return Response({"error": "Permission denied. You can only suggest messages where you are the receiver."},status=status.HTTP_403_FORBIDDEN)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

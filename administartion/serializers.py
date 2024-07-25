@@ -45,7 +45,8 @@ class UserProfileInfo(serializers.ModelSerializer):
             "email",
             "phone_number",
             "profession",
-            "username"
+            "username",
+            "profile_picture"
         )
 
 
@@ -61,6 +62,7 @@ class CustomUserSerializer(serializers.Serializer):
 
     date_of_birth = serializers.DateField(required=False)
     profession = serializers.CharField(required=False)
+    profile_picture = serializers.ImageField(required=False)
 
     # def update(self, instance, validated_data):
     #     # Update the instance with the validated data
@@ -100,6 +102,9 @@ class CustomUserSerializer(serializers.Serializer):
             context["bio"] = validated_data.get(
                 "bio",instance.bio
             )
+            context["profile_picture"] = validated_data.get("profile_picture",instance.profile_picture)
+
+
             serializer_class = UserProfileInfo
 
             for key, value in context.items():
