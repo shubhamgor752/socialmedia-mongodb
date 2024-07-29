@@ -218,3 +218,72 @@ class SuggestMessageViewSet(viewsets.ViewSet):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class conversationViewSet(viewsets.ViewSet):
+    serializer_class = MyConversationSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def list(self,request , *args , **kwargs):
+        try:
+            conversation_messages = ChatMessage.objects.filter(sender=request.user.profile)
+
+            if not conversation_messages:
+                return Response({
+                    "status": True,
+                    "message": "No conversation with any user",
+                },
+                status=status.HTTP_400_BAD_REQUEST
+                )
+            serializer = self.serializer_class(conversation_messages , many=True)
+            return Response({
+                "status":True,
+                "message":"conversation found succesfully", "data":serializer.data
+            },
+            status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"status": False, "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class PendingMsgViewSet(viewsets.ViewSet):
+    permission_classes = (IsAuthenticated,)
+
+    def list(self,request,*args , **kwargs):
+        try:
+            receiver_profile = request.user.userprofile
+
+            unread_message = ChatMessage.objects.filter(receiver = receiver_profile , is_read=False)
+
+            if not unread_message:
+                return Response({"message": "No Pedning message right now"})
+            
+            else:
+                unread_message.update(is_read=True)
+
+            conversation_message = ChatMessage.objects.filter(Q(receiver = request.user.userprofile))
+
+            if not conversation_message:
+                return Response(
+                    {
+                        "status": True,
+                        "message": "No conversation with any user",
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            
+            serializer = MyConversationSerializer(conversation_message , many=True)
+
+            return Response(
+                {
+                    "status": True,
+                    "message": "Pending  Message found successfully",
+                    "data": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"status": False, "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
