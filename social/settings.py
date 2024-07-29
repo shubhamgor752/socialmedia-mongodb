@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'administartion',
     'chat',
+    'post',
+    'connection',
     'cloudinary',
     'cloudinary_storage',
 ]
