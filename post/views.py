@@ -27,7 +27,7 @@ class CreatPostViewSet(viewsets.ViewSet):
                 post_title = validated_data.get("post_title")
                 description = validated_data.get("description")
 
-                author = request.user
+                author = request.user.userprofile
 
                 message_response = Post.objects.create(
                     author = author,
