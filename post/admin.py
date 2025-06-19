@@ -5,8 +5,8 @@ from .models import Post
 
 
 class postadmin(admin.ModelAdmin):
-    fields = ["author", "post_title","likes","description"]
-    list_display = ["id", "author", "post_title",  "description","get_like_display"]
+    fields = ["author", "post_title","likes","description", "image"]
+    list_display = ["id", "author", "post_title",  "description","image","get_like_display"]
 
     def get_like_display(self,obj):
         return ", ".join(like.username for like in obj.likes.all())

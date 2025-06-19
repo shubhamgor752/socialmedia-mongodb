@@ -10,3 +10,6 @@ class Post(models.Model):
     author = models.ForeignKey(UserProfile , on_delete = models.CASCADE , related_name = 'create_post')
     likes = models.ManyToManyField(UserProfile , related_name='like_post', blank=True)
     description = models.TextField()
+    image = models.ImageField(upload_to='post/images/', null=True, blank=True)
+
+
